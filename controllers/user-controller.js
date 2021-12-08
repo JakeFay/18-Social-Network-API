@@ -6,7 +6,7 @@ const userController = {
     getAllUsers(req, res) {
         User.find({})
             .populate({
-                path: 'comments',
+                path: 'friends',
                 select: '-__v'
             })
             .select('-__v')
@@ -20,13 +20,14 @@ const userController = {
 
     // get one User by id
     getUserById({ params }, res) {
+        console.log(params.id)
         User.findOne({ _id: params.id })
             .populate({
-                path: 'thought',
+                path: 'thoughts',
                 select: '-__v'
-            },
-                {
-                    path: 'friend',
+            })
+            .populate({
+                    path: 'friends',
                     select: '-__v'
                 })
             .select('-__v')
@@ -62,5 +63,23 @@ const userController = {
     User.findOneAndDelete({ _id: params.id })
       .then(dbUserData => res.json(dbUserData))
       .catch(err => res.json(err));
+    },
+
+    addFriend({ params }, res) {
+        User.findByIdAndUpdate(params.userId,{
+            $addToSet:{friends: params.friendId}
+        }, {new: true})
+        .then(dbUserData => res.json(dbUserData))
+        .catch(err => res.json(err));
+    },
+
+    deleteFriend({ params }, res) {
+        User.findByIdAndUpdate(params.userId,{
+            $pull:{friends: params.friendId}
+        }, {new: true})
+        .then(dbUserData => res.json(dbUserData))
+        .catch(err => res.json(err));
     }
 };
+
+module.exports = userController;
