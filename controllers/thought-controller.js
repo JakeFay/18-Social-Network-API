@@ -1,14 +1,12 @@
-const { Thought } = require('../models');
+const { Thought, User } = require('../models');
+const { db } = require('../models/User');
 
 const thoughtController = {
 
     // get all Thoughts
     getAllThoughts(req, res) {
         Thought.find({})
-            .populate({
-                path: 'thought',
-                select: '-__v'
-            })
+         
             .select('-__v')
             .sort({ _id: -1 })
             .then(dbThoughtData => res.json(dbThoughtData))
@@ -21,10 +19,7 @@ const thoughtController = {
     // get one Thought by id
     getThoughtById({ params }, res) {
         Thought.findOne({ _id: params.id })
-            .populate({
-                path: 'thought',
-                select: '-__v'
-            })
+           
             .select('-__v')
             .then(dbThoughtData => res.json(dbThoughtData))
             .catch(err => {
@@ -35,9 +30,13 @@ const thoughtController = {
     },
 
     // create Thought
-    createThought({ body }, res) {
+    createThought({ body }, res) {  
         Thought.create(body)
-            .then(dbThoughtData => res.json(dbThoughtData))
+            .then(dbThoughtData => {
+                User.findByIdAndUpdate(body.userId, {
+                    $addToSet: {thoughts: dbThoughtData._id}
+                }, {new: true})
+                res.json(dbThoughtData)})
             .catch(err => res.json(err));
     },
 
@@ -59,7 +58,30 @@ const thoughtController = {
         Thought.findOneAndDelete({ _id: params.id })
             .then(dbThoughtData => res.json(dbThoughtData))
             .catch(err => res.json(err));
-    }
+    },
+
+    createReaction({ params , body}, res) {
+        Thought.findByIdAndUpdate(
+            {_id: params.thoughtId},
+            {
+            $addToSet:{reactions: body}
+        }, 
+        {new: true})
+       .then(dbUserData => res.json(dbUserData))
+        .catch(err => res.json(err));
+    },
+
+    deleteReaction({ params }, res) {
+        console.log(params)
+        Thought.findOneAndUpdate(
+            
+            {_id: params.thoughtId},
+            {$pull:{ reactions:{ reactionId: params.reactionId}}},
+            {new: true}
+            )
+        .then(dbUserData => res.json(dbUserData))
+        .catch(err => res.json(err));
+    },
 };
 
 module.exports = thoughtController;
